@@ -21,6 +21,7 @@ try:
   WAREHOUSE_TEMPLATE     = "warehouse_jinja_template.json"
   json_templates_path    = f"{workspace_src_path}/tools/jinja_templates/"
   template_type          = "dbsql" if sku[0] == 'STMV' else sku[0]
+  exec_folder            = "SQL" if sku[0] == 'DBSQL' else sku[0]
 
   # DAG of args to send to Jinja
   dag_args = {
@@ -32,7 +33,9 @@ try:
     "repo_src_path":repo_src_path,
     "cloud_provider":cloud_provider,
     "exec_type":sku[0],
-    "serverless":serverless
+    "serverless":serverless,
+    "pred_opt":pred_opt,
+    "exec_folder":exec_folder
   }
 
   if sku[0] == 'CLUSTER' and serverless != 'YES':
@@ -45,14 +48,10 @@ try:
     dag_args['dbr'] = dbr_version_id
     compute = f"""Driver Type:              {driver_node_type}\nWorker Type:              {worker_node_type}\nWorker Count:             {worker_node_count}\nDBR Version:              {dbr_version_id}"""
   else:
-    if scale_factor > 100:
-      dag_args['dbr'] = default_dbr_version
-      dag_args['worker_node_type'] = default_worker_type
-      dag_args['driver_node_type'] = default_worker_type
-      dag_args['worker_node_count'] = 0
-      if scale_factor > 1000:
-        dag_args['driver_node_type'] = cust_mgmt_type
-        dag_args['worker_node_type'] = cust_mgmt_type 
+    dag_args['dbr'] = default_dbr_version
+    dag_args['driver_node_type'] = cust_mgmt_type if scale_factor > 1000 else default_worker_type
+    dag_args['worker_node_type'] = cust_mgmt_type if scale_factor > 1000 else default_worker_type
+    dag_args['worker_node_count'] = 0
   if sku[0] in ['DBT', 'STMV', 'DBSQL']:
     wh_size = wh_scale_factor_map[f"{scale_factor}"]
     wh_name = f"TPCDI_{wh_size}"

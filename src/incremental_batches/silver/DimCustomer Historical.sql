@@ -1,37 +1,5 @@
 -- Databricks notebook source
-INSERT OVERWRITE ${catalog}.${wh_db}_${scale_factor}.DimCustomer (
-  customerid,
-  taxid,
-  status,
-  lastname,
-  firstname,
-  middleinitial,
-  gender,
-  tier,
-  dob,
-  addressline1,
-  addressline2,
-  postalcode,
-  city,
-  stateprov,
-  country,
-  phone1,
-  phone2,
-  phone3,
-  email1,
-  email2,
-  nationaltaxratedesc,
-  nationaltaxrate,
-  localtaxratedesc,
-  localtaxrate,
-  agencyid,
-  creditrating,
-  networth,
-  marketingnameplate,
-  batchid,
-  effectivedate,
-  enddate
-)
+INSERT OVERWRITE ${catalog}.${wh_db}_${scale_factor}.DimCustomer
 WITH CustomerHistory AS (
   SELECT
     customerid,
@@ -185,16 +153,13 @@ WITH CustomerHistory AS (
       ),
       date('9999-12-31')
     ) enddate
-  FROM (
-    SELECT
-      * except(update_ts),
-      to_timestamp(update_ts) update_ts
-    FROM ${catalog}.${wh_db}_${scale_factor}_stage.CustomerMgmt c
-    WHERE
-      ActionType in ('NEW', 'INACT', 'UPDCUST')
-  )
+  FROM 
+    ${catalog}.${wh_db}_${scale_factor}_stage.CustomerMgmt c
+  WHERE
+    ActionType in ('NEW', 'INACT', 'UPDCUST')
 )
 SELECT 
+  bigint(concat(date_format(c.effectivedate, 'yyyyMMdd'), customerid)) sk_customerid,
   c.customerid,
   c.taxid,
   c.status,
@@ -223,6 +188,7 @@ SELECT
   p.creditrating,
   p.networth,
   p.marketingnameplate,
+  if(enddate = date('9999-12-31'), true, false) iscurrent,
   c.batchid,
   c.effectivedate,
   c.enddate
